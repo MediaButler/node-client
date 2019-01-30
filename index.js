@@ -4,35 +4,28 @@ const events = require('events');
 const emitter = new events.EventEmitter();
 
 module.exports = class mbService {
-    constructor(settings, guild = false, startup = false) {
+    constructor({ serverUrl, token }) {
         this._settings = settings;
         this.clientId = 'fc5e13ca-e0ab-4d15-8dbd-9cf915ee6c0a';
         if (guild) this.guild = guild;
-        if (!settings.mbUrl) throw new Error('URL not set');
-        if (!settings.mbToken) throw new Error('APIKey not set');
-        if (settings.mbUrl.slice(-1) != '/') settings.mbUrl = `${settings.mbUrl}/`;
-        this.mburl = url.parse(settings.mbUrl);
-        this.logChannel = false;
-        if (settings.logChannel) this.logChannel = settings.logChannel;
+        if (!serverUrl) throw new Error('URL not set');
+        if (!token) throw new Error('APIKey not set');
+        if (url.slice(-1) != '/') settings.mbUrl = `${settings.mbUrl}/`;
+        this.mburl = url.parse(serverUrl);
         this.getMyUser().then((user) => {
             this.user = user;
         });
         if (startup) {
             this.notificationAgent = require('socket.io-client')(`${this.mburl.protocol}//${this.mburl.host}`, { path: `${this.mburl.path}socket.io`, reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: (2070 * 1000), reconnectionAttempts: Infinity, pingInterval: 30000, pingTimeout: 1000 });
-            this.notificationAgent.on('connect', async (socket) => {
-                this.notificationAgent.emit('authenticate', { token: settings.mbToken });
-
-            });
-            this.notificationAgent.on('disconnect', async (socket) => {
-            });
-            this.notificationAgent.on('request', (data) => { this.requestMessage(data); });
-            this.notificationAgent.on('sonarr', (data) => { this.tvshowMessage(data); });
-            this.notificationAgent.on('sonarr4k', (data) => { this.tvshowMessage(data, true); });
-            this.notificationAgent.on('radarr', (data) => { this.movieMessage(data); });
-            this.notificationAgent.on('radarr4k', (data) => { this.movieMessage(data, true); });
-            this.notificationAgent.on('radarr3d', (data) => { this.movieMessage(data, false, true); });
-            //this.notificationAgent.on('plex', (data) => { this.plexMessage(data); });
-            this.notificationAgent.on('tautulli', (data) => { this.tautulliMessage(data); });
+            this.notificationAgent.on('connect', async (socket) => { this.notificationAgent.emit('authenticate', { token: settings.mbToken }); });
+            this.notificationAgent.on('disconnect', async (socket) => { });
+            this.notificationAgent.on('request', (data) => { emitter.emit('request', data); });
+            this.notificationAgent.on('sonarr', (data) => { emitter.emit('sonarr', data); });
+            this.notificationAgent.on('sonarr4k', (data) => { emitter.emit('sonarr4k', data); });
+            this.notificationAgent.on('radarr', (data) => { emitter.emit('radarr', data); });
+            this.notificationAgent.on('radarr4k', (data) => { emitter.emit('radarr4k', data); });
+            this.notificationAgent.on('radarr3d', (data) => { emitter.emit('radarr3d', data); });
+            this.notificationAgent.on('tautulli', (data) => { emitter.emit('tautulli', data); });
         }
     }
 
@@ -82,13 +75,18 @@ module.exports = class mbService {
     }
 
     async getRequests() {
-        const requests = await this._get('requests');
-        return requests;
+        try {
+            const req = await this._get('requests');
+            return req;
+        } catch (err) { throw err; }
     }
 
     async addAllowApprove(username, types) {
-        const data = { username, types };
-        const req = await this._post('requests/allowapprove', data);
+        try {
+            const data = { username, types };
+            const req = await this._post('requests/allowapprove', data);
+            return req;
+        } catch (err) { throw err; }
     }
 
     async getAllowApprove() {
@@ -120,8 +118,11 @@ module.exports = class mbService {
     }
 
     async addAutoApprove(username, types) {
-        const data = { username, types };
-        const req = await this._post('requests/autoapprove', data);
+        try {
+            const data = { username, types };
+            const req = await this._post('requests/autoapprove', data);
+            return req;
+        } catch (err) { throw err; }
     }
 
     async getAutoApprove() {
@@ -182,7 +183,7 @@ module.exports = class mbService {
 
     async getTautulliHistory(user) {
         try {
-            const params = {user};
+            const params = { user };
             const req = await this._get('tautulli/history', params);
             return req.response;
         } catch (err) { throw err; }
@@ -276,10 +277,10 @@ module.exports = class mbService {
     async _get(command, args) {
         try {
             let params = '?';
-			if (typeof (args) == 'object') {
-				for (let key of Object.keys(args)) {
-					params += `${key}=${args[key]}&`;
-				}
+            if (typeof (args) == 'object') {
+                for (let key of Object.keys(args)) {
+                    params += `${key}=${args[key]}&`;
+                }
             }
             const a = await axios.get(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}${params}`, { headers: { 'Authorization': `Bearer ${this._settings.mbToken}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
