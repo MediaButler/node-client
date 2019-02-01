@@ -56,42 +56,34 @@ module.exports = class mbService {
         this.notificationAgent.on('tautulli', (data) => { emitter.emit('tautulli', data); });
     }
 
-    async _checkPlugins(plugins = []) {
-        this.enabledPlugins = new Array();
-        this.disabledPlugins = new Array();
-        if (plugins.length == 0) return setTimeout(() => { this._checkPlugins(plugins) }, 5000);
-        for (let i = 0; i < plugins.length; i++) {
-            try {
-                const r = await this._get(plugins[i]);
-                this.enabledPlugins.push(plugins[i]);
-            } catch (err) {
-                if (err.response && err.response.status == 400 && err.response.data.name == 'NotEnabled') {
-                    this.disabledPlugins.push(plugins[i]);
-                } else { this.enabledPlugins.push(plugins[i]); }
-            }
-        }
-    }
-
     async getVersion() {
-        const req = await this._get('version');
-        return req;
+        try {
+            const req = await this._get('version');
+            return req;
+        } catch (err) { throw err; }
     }
 
     // RULES
     async getAllRules() {
-        const req = await this._get('rules');
-        return req;
+        try {
+            const req = await this._get('rules');
+            return req;
+        } catch (err) { throw err; }
     }
 
     // REQUESTS
     async addRequest(request) {
-        const req = await this._post('requests', request);
-        return req;
+        try {
+            const req = await this._post('requests', request);
+            return req;
+        } catch (err) { throw err; }
     }
 
     async delRequest(id) {
-        const req = await this._delete(`requests/${id}`, { confirmed: true });
-        return req;
+        try {
+            const req = await this._delete(`requests/${id}`);
+            return req;
+        } catch (err) { throw err; }
     }
 
     async approveRequest(id, args = {}) {
@@ -104,78 +96,6 @@ module.exports = class mbService {
     async getRequests() {
         try {
             const req = await this._get('requests');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async addAllowApprove(username, types) {
-        try {
-            const data = { username, types };
-            const req = await this._post('requests/allowapprove', data);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getAllowApprove() {
-        try {
-            const req = await this._get('requests/allowapprove');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getAllowApproveForUsername(username) {
-        try {
-            const req = await this._get(`requests/allowapprove/${username}`);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async updateAllowApprove(username, types, shouldReplace = false) {
-        try {
-            const req = await this._put(`requests/allowapprove/${username}`, { types, replace: shouldReplace });
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async deleteAllowApprove(username) {
-        try {
-            const req = await this._delete(`requests/allowapprove/${username}`);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async addAutoApprove(username, types) {
-        try {
-            const data = { username, types };
-            const req = await this._post('requests/autoapprove', data);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getAutoApprove() {
-        try {
-            const req = await this._get('requests/autoapprove');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getAutoApprove(username) {
-        try {
-            const req = await this._get(`requests/autoapprove/${username}`);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async updateAutoApprove(username, types, shouldReplace = false) {
-        try {
-            const req = await this._put(`requests/autoapprove/${username}`, { types, replace: shouldReplace });
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async deleteAutoApprove(username) {
-        try {
-            const req = await this._delete(`requests/autoapprove/${username}`);
             return req;
         } catch (err) { throw err; }
     }
