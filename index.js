@@ -13,6 +13,7 @@ module.exports = class mbService {
         this.machineId = machineId;
         this.clientId = clientId;
         this.mburl = url.parse(serverUrl);
+        this.getVersion().then((version) => { this.version = version; })
     }
 
     async loginPlexToken(authToken) {
@@ -58,8 +59,8 @@ module.exports = class mbService {
 
     async getVersion() {
         try {
-            const req = await this._get('version');
-            return req;
+            const a = await axios.get(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}version`, { headers: { 'MB-Client-Identifier': this.clientId } });
+            return a.data;
         } catch (err) { throw err; }
     }
 
@@ -159,6 +160,7 @@ module.exports = class mbService {
 
     async getUser(username) {
         try {
+            if (!this.user.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
             const req = await this._get(`user/${username}`);
             return req;
         } catch (err) { throw err; }
@@ -166,6 +168,7 @@ module.exports = class mbService {
 
     async addPermission(username, permission) {
         try {
+            if (!this.user.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
             const user = await this.getUser(username);
             user.permissions.push(permission);
             const req = await this._put(`user/${username}`, user);
@@ -175,6 +178,7 @@ module.exports = class mbService {
 
     async delPermission(username, permission) {
         try {
+            if (!this.user.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
             const user = await this.getUser(username);
             if (user.permissions.indexOf(permission) == -1) return;
             user.permissions.splice(user.permissions.indexOf(permission), 1);
