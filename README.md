@@ -4,10 +4,6 @@ A Node.js client-side implementation of the [MediaButler Server](https://github.
 
 NOTE: This is a code implementation of the client and does not include any front end capabilities.
 
-## Dependancies
-
- - Axios
-
 ## How to use
 
  - Start your project by running `npm init`

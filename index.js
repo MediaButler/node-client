@@ -4,29 +4,54 @@ const events = require('events');
 const emitter = new events.EventEmitter();
 
 module.exports = class mbService {
-    constructor({ serverUrl, token }) {
-        this._settings = settings;
-        this.clientId = 'fc5e13ca-e0ab-4d15-8dbd-9cf915ee6c0a';
-        if (guild) this.guild = guild;
-        if (!serverUrl) throw new Error('URL not set');
-        if (!token) throw new Error('APIKey not set');
-        if (url.slice(-1) != '/') settings.mbUrl = `${settings.mbUrl}/`;
+    constructor({ serverUrl, machineId, clientId }) {
+        if (!serverUrl) throw new Error('serverUrl not provided');
+        if (!machineId) throw new Error('machineId not provided');
+        if (!clientId) throw new Error('clientId not provided');
+        if (serverUrl.slice(-1) != '/') serverUrl = `${serverUrl}/`;
+        this.serverUrl = serverUrl;
+        this.machineId = machineId;
+        this.clientId = clientId;
         this.mburl = url.parse(serverUrl);
-        this.getMyUser().then((user) => {
-            this.user = user;
-        });
-        if (startup) {
-            this.notificationAgent = require('socket.io-client')(`${this.mburl.protocol}//${this.mburl.host}`, { path: `${this.mburl.path}socket.io`, reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: (2070 * 1000), reconnectionAttempts: Infinity, pingInterval: 30000, pingTimeout: 1000 });
-            this.notificationAgent.on('connect', async (socket) => { this.notificationAgent.emit('authenticate', { token: settings.mbToken }); });
-            this.notificationAgent.on('disconnect', async (socket) => { });
-            this.notificationAgent.on('request', (data) => { emitter.emit('request', data); });
-            this.notificationAgent.on('sonarr', (data) => { emitter.emit('sonarr', data); });
-            this.notificationAgent.on('sonarr4k', (data) => { emitter.emit('sonarr4k', data); });
-            this.notificationAgent.on('radarr', (data) => { emitter.emit('radarr', data); });
-            this.notificationAgent.on('radarr4k', (data) => { emitter.emit('radarr4k', data); });
-            this.notificationAgent.on('radarr3d', (data) => { emitter.emit('radarr3d', data); });
-            this.notificationAgent.on('tautulli', (data) => { emitter.emit('tautulli', data); });
-        }
+    }
+
+    async loginPlexToken(authToken) {
+        try {
+            const req = await axios.post("https://auth.mediabutler.io/login", { authToken }, { headers: { 'MB-Client-Identifier': this.clientId } });
+            const servers = {};
+            req.data.servers.map((x) => { servers[x] = x; });
+            if (!servers[this.machineId]) throw new Error('Server not found');
+            this.token = servers[this.machineId];
+            this.setupSocket();
+            return req.data;
+        } catch (err) { throw err; }
+    }
+
+    async loginUserPass(username, password) {
+        try {
+            const req = await axios.post("https://auth.mediabutler.io/login", { username, password }, { headers: { 'MB-Client-Identifier': this.clientId } });
+            const servers = {};
+            req.data.servers.map((x) => { servers[x] = x; });
+            if (!servers[this.machineId]) throw new Error('Server not found');
+            this.token = servers[this.machineId];
+            this.setupSocket();
+            return req.data;
+        } catch (err) { throw err; }
+    }
+
+    async setupSocket() {
+        if (!this.token) throw new Error('Not Logged In');
+        const opt = { path: `${this.mburl.path}socket.io`, reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: (2070 * 1000), reconnectionAttempts: Infinity, pingInterval: 30000, pingTimeout: 1000 };
+        this.notificationAgent = require('socket.io-client')(`${this.mburl.protocol}//${this.mburl.host}`, opt);
+        this.notificationAgent.on('connect', async (socket) => { this.notificationAgent.emit('authenticate', { token: this.token }); emitter.emit('connected'); });
+        this.notificationAgent.on('disconnect', async (socket) => { emitter.emit('disconected'); });
+        this.notificationAgent.on('request', (data) => { emitter.emit('request', data); });
+        this.notificationAgent.on('sonarr', (data) => { emitter.emit('sonarr', data); });
+        this.notificationAgent.on('sonarr4k', (data) => { emitter.emit('sonarr4k', data); });
+        this.notificationAgent.on('radarr', (data) => { emitter.emit('radarr', data); });
+        this.notificationAgent.on('radarr4k', (data) => { emitter.emit('radarr4k', data); });
+        this.notificationAgent.on('radarr3d', (data) => { emitter.emit('radarr3d', data); });
+        this.notificationAgent.on('tautulli', (data) => { emitter.emit('tautulli', data); });
     }
 
     async _checkPlugins(plugins = []) {
@@ -249,7 +274,7 @@ module.exports = class mbService {
 
     async _delete(command, data = {}) {
         try {
-            const a = await axios.delete(`${this._settings.mbUrl}${command}`, { data, headers: { 'Authorization': `Bearer ${this._settings.mbToken}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.delete(`${this._settings.mbUrl}${command}`, { data, headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a;
         } catch (err) {
             if (err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
@@ -258,7 +283,7 @@ module.exports = class mbService {
     }
     async _put(command, args) {
         try {
-            const a = await axios.put(`${this._settings.mbUrl}${command}`, args, { headers: { 'Authorization': `Bearer ${this._settings.mbToken}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.put(`${this._settings.mbUrl}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
         } catch (err) {
             if (err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
@@ -267,7 +292,7 @@ module.exports = class mbService {
     }
     async _post(command, args) {
         try {
-            const a = await axios.post(`${this._settings.mbUrl}${command}`, args, { headers: { 'Authorization': `Bearer ${this._settings.mbToken}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.post(`${this._settings.mbUrl}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
         } catch (err) {
             if (err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
@@ -282,7 +307,7 @@ module.exports = class mbService {
                     params += `${key}=${args[key]}&`;
                 }
             }
-            const a = await axios.get(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}${params}`, { headers: { 'Authorization': `Bearer ${this._settings.mbToken}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.get(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}${params}`, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
         } catch (err) {
             if (err.response && err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
