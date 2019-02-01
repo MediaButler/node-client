@@ -22,6 +22,7 @@ module.exports = class mbService {
             req.data.servers.map((x) => { servers[x] = x; });
             if (!servers[this.machineId]) throw new Error('Server not found');
             this.token = servers[this.machineId];
+            this.user = await this.getMyUser();
             this.setupSocket();
             return req.data;
         } catch (err) { throw err; }
@@ -34,6 +35,7 @@ module.exports = class mbService {
             req.data.servers.map((x) => { servers[x] = x; });
             if (!servers[this.machineId]) throw new Error('Server not found');
             this.token = servers[this.machineId];
+            this.user = await this.getMyUser();
             this.setupSocket();
             return req.data;
         } catch (err) { throw err; }
@@ -263,6 +265,7 @@ module.exports = class mbService {
 
     async _getPipe(command) {
         try {
+            if (!this.token) throw new Error('Not Logged In');
             if (command.startsWith('/')) command = command.substring(1, command.length);
             const a = await axios({ method: 'get', responseType: 'stream', url: `${this._settings.mbUrl}${command}`, headers: { 'Authorization': `Bearer ${this._settings.mbToken}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
@@ -274,6 +277,7 @@ module.exports = class mbService {
 
     async _delete(command, data = {}) {
         try {
+            if (!this.token) throw new Error('Not Logged In');
             const a = await axios.delete(`${this._settings.mbUrl}${command}`, { data, headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a;
         } catch (err) {
@@ -283,6 +287,7 @@ module.exports = class mbService {
     }
     async _put(command, args) {
         try {
+            if (!this.token) throw new Error('Not Logged In');
             const a = await axios.put(`${this._settings.mbUrl}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
         } catch (err) {
@@ -292,6 +297,7 @@ module.exports = class mbService {
     }
     async _post(command, args) {
         try {
+            if (!this.token) throw new Error('Not Logged In');
             const a = await axios.post(`${this._settings.mbUrl}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
         } catch (err) {
@@ -301,6 +307,7 @@ module.exports = class mbService {
     }
     async _get(command, args) {
         try {
+            if (!this.token) throw new Error('Not Logged In');
             let params = '?';
             if (typeof (args) == 'object') {
                 for (let key of Object.keys(args)) {
