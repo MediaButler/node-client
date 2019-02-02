@@ -1,6 +1,6 @@
 {
   "name": "mediabutler-client",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "Client for the MediaButler Server",
   "main": "index.js",
   "scripts": {

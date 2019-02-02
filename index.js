@@ -1,10 +1,10 @@
 const axios = require('axios');
 const url = require('url');
 const events = require('events');
-const emitter = new events.EventEmitter();
 
 module.exports = class mbService {
     constructor({ serverUrl, machineId, clientId }) {
+        this.emitter = new events.EventEmitter();
         if (!serverUrl) throw new Error('serverUrl not provided');
         if (!machineId) throw new Error('machineId not provided');
         if (!clientId) throw new Error('clientId not provided');
@@ -46,15 +46,15 @@ module.exports = class mbService {
         if (!this.token) throw new Error('Not Logged In');
         const opt = { path: `${this.mburl.path}socket.io`, reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: (2070 * 1000), reconnectionAttempts: Infinity, pingInterval: 30000, pingTimeout: 1000 };
         this.notificationAgent = require('socket.io-client')(`${this.mburl.protocol}//${this.mburl.host}`, opt);
-        this.notificationAgent.on('connect', async (socket) => { this.notificationAgent.emit('authenticate', { token: this.token }); emitter.emit('connected'); });
-        this.notificationAgent.on('disconnect', async (socket) => { emitter.emit('disconected'); });
-        this.notificationAgent.on('request', (data) => { emitter.emit('request', data); });
-        this.notificationAgent.on('sonarr', (data) => { emitter.emit('sonarr', data); });
-        this.notificationAgent.on('sonarr4k', (data) => { emitter.emit('sonarr4k', data); });
-        this.notificationAgent.on('radarr', (data) => { emitter.emit('radarr', data); });
-        this.notificationAgent.on('radarr4k', (data) => { emitter.emit('radarr4k', data); });
-        this.notificationAgent.on('radarr3d', (data) => { emitter.emit('radarr3d', data); });
-        this.notificationAgent.on('tautulli', (data) => { emitter.emit('tautulli', data); });
+        this.notificationAgent.on('connect', async (socket) => { this.notificationAgent.emit('authenticate', { token: this.token }); this.emitter.emit('connected'); });
+        this.notificationAgent.on('disconnect', async (socket) => { this.emitter.emit('disconected'); });
+        this.notificationAgent.on('request', (data) => { this.emitter.emit('request', data); });
+        this.notificationAgent.on('sonarr', (data) => { this.emitter.emit('sonarr', data); });
+        this.notificationAgent.on('sonarr4k', (data) => { this.emitter.emit('sonarr4k', data); });
+        this.notificationAgent.on('radarr', (data) => { this.emitter.emit('radarr', data); });
+        this.notificationAgent.on('radarr4k', (data) => { this.emitter.emit('radarr4k', data); });
+        this.notificationAgent.on('radarr3d', (data) => { this.emitter.emit('radarr3d', data); });
+        this.notificationAgent.on('tautulli', (data) => { this.emitter.emit('tautulli', data); });
     }
 
     async getVersion() {
