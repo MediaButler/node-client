@@ -1,6 +1,20 @@
 const axios = require('axios');
 const url = require('url');
 const events = require('events');
+const mediabutlerLidarr = require('./lib/lidarr');
+const mediabutlerMovie = require('./lib/movie');
+const mediabutlerPlex = require('./lib/plex');
+const mediabutlerRadarr = require('./lib/radarr');
+const mediabutlerRadarr3d = require('./lib/radarr3d');
+const mediabutlerRadarr4k = require('./lib/radarr4k');
+const mediabutlerRequest = require('./lib/request');
+const mediabutlerSonarr = require('./lib/sonarr');
+const mediabutlerSonarr4k = require('./lib/sonarr4k');
+const mediabutlerTautulli = require('./lib/tautulli');
+const mediabutlerTrakt = require('./lib/trakt');
+const mediabutlerTv = require('./lib/tv');
+const mediabutlerUser = require('./lib/user');
+const apiTarget = '1.1.9';
 
 module.exports = class mbService {
     constructor({ serverUrl, machineId, clientId }) {
@@ -13,17 +27,30 @@ module.exports = class mbService {
         this.machineId = machineId;
         this.clientId = clientId;
         this.mburl = url.parse(serverUrl);
-        this.getVersion().then((version) => { this.version = version; })
+        this.lidarr = new mediabutlerLidarr({mbService: this});
+        this.movie = new mediabutlerMovie({mbService: this});
+        this.plex = new mediabutlerPlex({mbService: this});
+        this.radarr = new mediabutlerRadarr({mbService: this});
+        this.radarr3d = new mediabutlerRadarr3d({mbService: this});
+        this.radarr4k = new mediabutlerRadarr4k({mbService: this});
+        this.request = new mediabutlerRequest({mbService: this});
+        this.sonarr = new mediabutlerSonarr({mbService: this});
+        this.sonarr4k = new mediabutlerSonarr4k({mbService: this});
+        this.tautulli = new mediabutlerTautulli({mbService: this});
+        this.trakt = new mediabutlerTrakt({mbService: this});
+        this.tv = new mediabutlerTv({mbService: this});
+        this.user = new mediabutlerUser({mbService: this});
     }
 
     async loginPlexToken(authToken) {
         try {
             const req = await axios.post("https://auth.mediabutler.io/login", { authToken }, { headers: { 'MB-Client-Identifier': this.clientId } });
             const servers = {};
-            req.data.servers.map((x) => { servers[x] = x; });
+            req.data.servers.map((x) => { servers[x.machineId] = x; });
             if (!servers[this.machineId]) throw new Error('Server not found');
-            this.token = servers[this.machineId];
-            this.user = await this.getMyUser();
+            this.token = servers[this.machineId].token;
+            this.version = await this.getVersion();
+            this.loggedInUser = await this.getMyUser();
             this.setupSocket();
             return req.data;
         } catch (err) { throw err; }
@@ -36,7 +63,8 @@ module.exports = class mbService {
             req.data.servers.map((x) => { servers[x] = x; });
             if (!servers[this.machineId]) throw new Error('Server not found');
             this.token = servers[this.machineId];
-            this.user = await this.getMyUser();
+            this.version = await this.getVersion();
+            this.loggedInUser = await this.getMyUser();
             this.setupSocket();
             return req.data;
         } catch (err) { throw err; }
@@ -64,112 +92,10 @@ module.exports = class mbService {
         } catch (err) { throw err; }
     }
 
-    // RULES
-    async getAllRules() {
-        try {
-            const req = await this._get('rules');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    // REQUESTS
-    async addRequest(request) {
-        try {
-            const req = await this._post('requests', request);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async delRequest(id) {
-        try {
-            const req = await this._delete(`requests/${id}`);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async approveRequest(id, args = {}) {
-        try {
-            const req = await this._post(`requests/${id}`, args);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getRequests() {
-        try {
-            const req = await this._get('requests');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getCalendarSonarr() {
-        try {
-            const req = await this._get('sonarr/calendar');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getCalendarRadarr() {
-        try {
-            const req = await this._get('radarr/calendar');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getNowPlaying() {
-        try {
-            const req = await this._get('tautulli/activity');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async searchAudio(terms) {
-        try {
-            const req = await this._get(`plex/search/audio?query=${encodeURIComponent(terms)}`);
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getTautulliHistory(user) {
-        try {
-            const params = { user };
-            const req = await this._get('tautulli/history', params);
-            return req.response;
-        } catch (err) { throw err; }
-    }
-
-    async getTraktUrl() {
-        try {
-            const req = await this._get('trakt');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async setTraktToken(code) {
-        try {
-            const req = await this._post('trakt', { code });
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getMyUser() {
-        try {
-            const req = await this._get('user/@me');
-            return req;
-        } catch (err) { throw err; }
-    }
-
-    async getUser(username) {
-        try {
-            if (!this.user.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
-            const req = await this._get(`user/${username}`);
-            return req;
-        } catch (err) { throw err; }
-    }
-
     async addPermission(username, permission) {
         try {
-            if (!this.user.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
-            const user = await this.getUser(username);
+            if (!this.loggedInUser.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
+            const user = await this.user.getUser(username);
             user.permissions.push(permission);
             const req = await this._put(`user/${username}`, user);
             return req;
@@ -178,8 +104,8 @@ module.exports = class mbService {
 
     async delPermission(username, permission) {
         try {
-            if (!this.user.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
-            const user = await this.getUser(username);
+            if (!this.loggedInUser.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
+            const user = await this.user.getUser(username);
             if (user.permissions.indexOf(permission) == -1) return;
             user.permissions.splice(user.permissions.indexOf(permission), 1);
             const req = await this._put(`user/${username}`, user);
@@ -229,7 +155,8 @@ module.exports = class mbService {
             else throw err;
         }
     }
-    async _get(command, args) {
+
+    async _get(command, args = false) {
         try {
             if (!this.token) throw new Error('Not Logged In');
             let params = '?';
