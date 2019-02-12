@@ -50,7 +50,7 @@ module.exports = class mbService {
             if (!servers[this.machineId]) throw new Error('Server not found');
             this.token = servers[this.machineId].token;
             this.version = await this.getVersion();
-            this.loggedInUser = await this.getMyUser();
+            this.loggedInUser = await this.user.getMyUser();
             this.setupSocket();
             return req.data;
         } catch (err) { throw err; }
@@ -64,7 +64,7 @@ module.exports = class mbService {
             if (!servers[this.machineId]) throw new Error('Server not found');
             this.token = servers[this.machineId];
             this.version = await this.getVersion();
-            this.loggedInUser = await this.getMyUser();
+            this.loggedInUser = await this.user.getMyUser();
             this.setupSocket();
             return req.data;
         } catch (err) { throw err; }
