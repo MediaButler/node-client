@@ -1,0 +1,28 @@
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
+stages:
+  - build
+  - test
+  - deploy
+services:
+  - docker:dind
+build_npm:
+  image: node:4.2.2
+  stage: build
+  script:
+    - npm install
+test_npm:
+  image: node:4.2.2
+  stage: test
+  script:
+    - echo "Should have run npm test"
+deploy_npm:
+  stage: deploy
+  image: node:4.2.2
+  script:
+    - npm install
+    - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}'>.npmrc
+    - npm publish || true
+  only:
+    - master
