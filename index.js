@@ -117,43 +117,31 @@ module.exports = class mbService {
         try {
             if (!this.token) throw new Error('Not Logged In');
             if (command.startsWith('/')) command = command.substring(1, command.length);
-            const a = await axios({ method: 'get', responseType: 'stream', url: `${this._settings.mbUrl}${command}`, headers: { 'Authorization': `Bearer ${this._settings.mbToken}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios({ method: 'get', responseType: 'stream', url: `${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, headers: { 'Authorization': `Bearer ${this.mbToken}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
-        } catch (err) {
-            if (err.response && err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
-            else throw err;
-        }
+        } catch (err) { throw err; }
     }
-
     async _delete(command, data = {}) {
         try {
             if (!this.token) throw new Error('Not Logged In');
-            const a = await axios.delete(`${this._settings.mbUrl}${command}`, { data, headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
+            console.log(this.mburl)
+            const a = await axios.delete(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, { data, headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a;
-        } catch (err) {
-            if (err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
-            else throw err;
-        }
+        } catch (err) { throw err; }
     }
     async _put(command, args) {
         try {
             if (!this.token) throw new Error('Not Logged In');
-            const a = await axios.put(`${this._settings.mbUrl}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.put(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
-        } catch (err) {
-            if (err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
-            else throw err;
-        }
+        } catch (err) { throw err; }
     }
     async _post(command, args) {
         try {
             if (!this.token) throw new Error('Not Logged In');
-            const a = await axios.post(`${this._settings.mbUrl}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.post(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
-        } catch (err) {
-            if (err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
-            else throw err;
-        }
+        } catch (err) { throw err; }
     }
 
     async _get(command, args = false) {
@@ -167,10 +155,7 @@ module.exports = class mbService {
             }
             const a = await axios.get(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}${params}`, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
             return a.data;
-        } catch (err) {
-            if (err.response && err.response.status == 400 && err.response.data.name == 'NotFound') throw new Error('Plugin is not enabled');
-            else throw err;
-        }
+        } catch (err) { throw err; }
     }
 
     destroy() {
