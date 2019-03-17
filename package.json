@@ -1,6 +1,6 @@
 {
   "name": "mediabutler-client",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Client for the MediaButler Server",
   "main": "index.js",
   "scripts": {
@@ -12,5 +12,9 @@
     "axios": "^0.18.0",
     "socket.io-client": "^2.2.0",
     "url": "^0.11.0"
+  },
+  "devDependencies": {
+    "webpack": "^4.20.2",
+    "webpack-cli": "^3.1.2"
   }
 }
