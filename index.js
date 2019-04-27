@@ -17,7 +17,7 @@ const mediabutlerUser = require('./lib/user');
 const apiTarget = '1.1.9';
 
 module.exports = class mbService {
-    constructor({ serverUrl, machineId, clientId }) {
+    constructor({ serverUrl, machineId, clientId, timeout = 10000 }) {
         this.emitter = new events.EventEmitter();
         if (!serverUrl) throw new Error('serverUrl not provided');
         if (!machineId) throw new Error('machineId not provided');
@@ -40,6 +40,7 @@ module.exports = class mbService {
         this.trakt = new mediabutlerTrakt({mbService: this});
         this.tv = new mediabutlerTv({mbService: this});
         this.user = new mediabutlerUser({mbService: this});
+        this.timeout = timeout;
     }
 
     async loginPlexToken(authToken) {
@@ -117,7 +118,7 @@ module.exports = class mbService {
         try {
             if (!this.token) throw new Error('Not Logged In');
             if (command.startsWith('/')) command = command.substring(1, command.length);
-            const a = await axios({ method: 'get', responseType: 'stream', url: `${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, headers: { 'Authorization': `Bearer ${this.mbToken}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios({ method: 'get', responseType: 'stream', url: `${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, headers: { 'Authorization': `Bearer ${this.mbToken}`, 'MB-Client-Identifier': this.clientId }, timeout: this.timeout });
             return a.data;
         } catch (err) { throw err; }
     }
@@ -125,21 +126,21 @@ module.exports = class mbService {
         try {
             if (!this.token) throw new Error('Not Logged In');
             console.log(this.mburl)
-            const a = await axios.delete(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, { data, headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.delete(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, { data, headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId }, timeout: this.timeout });
             return a;
         } catch (err) { throw err; }
     }
     async _put(command, args) {
         try {
             if (!this.token) throw new Error('Not Logged In');
-            const a = await axios.put(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.put(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId }, timeout: this.timeout });
             return a.data;
         } catch (err) { throw err; }
     }
     async _post(command, args) {
         try {
             if (!this.token) throw new Error('Not Logged In');
-            const a = await axios.post(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.post(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, args, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId , timeout: this.timeout} });
             return a.data;
         } catch (err) { throw err; }
     }
@@ -153,7 +154,7 @@ module.exports = class mbService {
                     params += `${key}=${args[key]}&`;
                 }
             }
-            const a = await axios.get(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}${params}`, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId } });
+            const a = await axios.get(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}${params}`, { headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId }, timeout: this.timeout });
             return a.data;
         } catch (err) { throw err; }
     }
