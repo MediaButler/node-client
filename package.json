@@ -1,6 +1,6 @@
 {
   "name": "mediabutler-client",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Client for the MediaButler Server",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,7 @@
   "author": "MediaButler",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.18.0",
+    "axios": "^0.18.1",
     "socket.io-client": "^2.2.0",
     "url": "^0.11.0"
   }
