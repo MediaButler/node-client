@@ -14,6 +14,7 @@ const mediabutlerTautulli = require('./lib/tautulli');
 const mediabutlerTrakt = require('./lib/trakt');
 const mediabutlerTv = require('./lib/tv');
 const mediabutlerUser = require('./lib/user');
+const mediabutlerConfigure = require('./lib/configure');
 const apiTarget = '1.1.9';
 
 module.exports = class mbService {
@@ -40,12 +41,13 @@ module.exports = class mbService {
         this.trakt = new mediabutlerTrakt({mbService: this});
         this.tv = new mediabutlerTv({mbService: this});
         this.user = new mediabutlerUser({mbService: this});
+        this.configure = new mediabutlerConfigure({mbService: this});
         this.timeout = timeout;
     }
 
     async loginPlexToken(authToken) {
         try {
-            const req = await axios.post("https://auth.mediabutler.io/login", { authToken }, { headers: { 'MB-Client-Identifier': this.clientId } });
+            const req = await axios.post("https://auth.mediabutler.app/login", { authToken }, { headers: { 'MB-Client-Identifier': this.clientId } });
             const servers = {};
             req.data.servers.map((x) => { servers[x.machineId] = x; });
             if (!servers[this.machineId]) throw new Error('Server not found');
@@ -59,7 +61,7 @@ module.exports = class mbService {
 
     async loginUserPass(username, password) {
         try {
-            const req = await axios.post("https://auth.mediabutler.io/login", { username, password }, { headers: { 'MB-Client-Identifier': this.clientId } });
+            const req = await axios.post("https://auth.mediabutler.app/login", { username, password }, { headers: { 'MB-Client-Identifier': this.clientId } });
             const servers = {};
             req.data.servers.map((x) => { servers[x] = x; });
             if (!servers[this.machineId]) throw new Error('Server not found');
@@ -95,7 +97,7 @@ module.exports = class mbService {
 
     async addPermission(username, permission) {
         try {
-            if (!this.loggedInUser.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
+            if (!this.loggedInUser.permissions.includes('ADMIN')) throw new Error('Insufficent Permissions');
             const user = await this.user.getUser(username);
             user.permissions.push(permission);
             const req = await this._put(`user/${username}`, user);
@@ -105,7 +107,7 @@ module.exports = class mbService {
 
     async delPermission(username, permission) {
         try {
-            if (!this.loggedInUser.permissions.includes('CAN_ADMIN')) throw new Error('Insufficent Permissions');
+            if (!this.loggedInUser.permissions.includes('ADMIN')) throw new Error('Insufficent Permissions');
             const user = await this.user.getUser(username);
             if (user.permissions.indexOf(permission) == -1) return;
             user.permissions.splice(user.permissions.indexOf(permission), 1);
@@ -125,7 +127,6 @@ module.exports = class mbService {
     async _delete(command, data = {}) {
         try {
             if (!this.token) throw new Error('Not Logged In');
-            console.log(this.mburl)
             const a = await axios.delete(`${this.mburl.protocol}//${this.mburl.host}${this.mburl.path}${command}`, { data, headers: { 'Authorization': `Bearer ${this.token}`, 'MB-Client-Identifier': this.clientId }, timeout: this.timeout });
             return a;
         } catch (err) { throw err; }
